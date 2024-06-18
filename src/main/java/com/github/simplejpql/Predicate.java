@@ -1,29 +1,37 @@
 package com.github.simplejpql;
 
-import static java.lang.Math.random;
-import static java.lang.Math.round;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
 
 public abstract class Predicate {
+	
+	protected final String prefix = UUID.randomUUID().toString().split("-")[4];
 
-	//Just a precaution to avoid name collisions with named parameters for any given query
-	protected final String suffix = String.format("%04d", round(random() * 10000));
+	protected Object getValue(Object value) {
+		return value != null ? (value instanceof Supplier ? ((Supplier<?>) value).get() : value) : null;
+	}
 	
 	protected String generateParameterName(String expression) {
-		return String.format("%s_%s", expression.replaceAll("[^A-Za-z0-9_$]", "_"), suffix);
+		return String.format("$%s_%s", prefix, expression.replaceAll("[^A-Za-z0-9_$]", "_"));
 	}
 	
 	public Map<String, Object> getNamedParameters() {
 		return Collections.emptyMap(); 
+	}
+	
+	protected static BinaryOperator<Object> throwingMerger() {
+		return (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); };
 	}
 
 	public abstract String toString();
@@ -49,7 +57,7 @@ public abstract class Predicate {
 			return Optional.ofNullable(predicates).orElse(emptyList()).stream()
 				.map(Predicate::getNamedParameters)
 				.flatMap(map -> map.entrySet().stream())
-				.collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+				.collect(toMap(Map.Entry::getKey, Map.Entry::getValue, throwingMerger(), LinkedHashMap::new));
 		}
 	}
 	
@@ -74,7 +82,7 @@ public abstract class Predicate {
 			return Optional.ofNullable(predicates).orElse(emptyList()).stream()
 				.map(Predicate::getNamedParameters)
 				.flatMap(map -> map.entrySet().stream())
-				.collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+				.collect(toMap(Map.Entry::getKey, Map.Entry::getValue, throwingMerger(), LinkedHashMap::new));
 		}
 	}
 	
@@ -240,16 +248,22 @@ public abstract class Predicate {
 
 	public static class Like extends Predicate {
 
-		private String operand, expression;
+		private String operand;
+		private Object expression;
 		
-		public Like(String operand, String expression) {
+		public Like(String operand, String expression, boolean ignoreCase) {
 			this.operand = operand;
 			this.expression = expression;
 		}
 
+		public Like(String operand, Supplier<String> expression, boolean ignoreCase) {
+			this.operand = operand;
+			this.expression = expression;
+		}
+		
 		@Override
 		public Map<String, Object> getNamedParameters() {
-			return new MapBuilder<String, Object>().put(generateParameterName(operand), expression).toMap();
+			return new MapBuilder<String, Object>().put(generateParameterName(operand), getValue(expression)).toMap();
 		}
 
 		@Override

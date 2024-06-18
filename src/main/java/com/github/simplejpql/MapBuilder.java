@@ -23,8 +23,4 @@ public class MapBuilder<K, V> {
 	public Map<K, V> toMap() {
 		return map;
 	}
-//	
-//	public Map<K, V> toMap(Predicate<? super Entry<K, V>> predicate) {
-//		return map.entrySet().stream().filter(predicate).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-//	}	
 }

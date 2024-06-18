@@ -24,7 +24,7 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Data
-@Builder
+@Builder(buildMethodName = "_build")
 @AllArgsConstructor
 @NoArgsConstructor
 public class Person {
@@ -41,14 +41,27 @@ public class Person {
 
 	private LocalDateTime createdOn;
 
+	private Boolean active;
+	
 	@OneToMany(mappedBy = "person", cascade = CascadeType.ALL)
 	@OrderColumn(name = "order_id")
+	@Builder.Default
 	private List<Phone> phones = new ArrayList<>();
 
 	@ElementCollection
 	@MapKeyEnumerated(EnumType.STRING)
+	@Builder.Default
 	private Map<AddressType, String> addresses = new HashMap<>();
 
 	@Version
 	private int version;
+	
+	public static class PersonBuilder {
+		public Person build() {
+			Person p = _build();
+			p.getPhones().forEach(ph -> ph.setPerson(p));
+			
+			return p;
+		}
+	}
 }

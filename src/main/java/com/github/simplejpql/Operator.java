@@ -140,7 +140,7 @@ public class Operator {
 	}
 
 	public static Predicate like(String operand, String pattern, boolean ignoreCase) {
-		return new Predicate.Like(ignoreCase ? String.format("lower(%s)", operand) : operand, ignoreCase ? pattern.toLowerCase() : pattern);
+		return new Predicate.Like(operand, pattern, ignoreCase);
 	}
 	
 	public static Predicate like(String operand, String pattern) {
